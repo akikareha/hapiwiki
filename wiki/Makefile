@@ -1,7 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -O2
 INC = -I..
-LIBCGI = ../cgi/libcgi.a
+LIBS = ../util/util.a ../cgi/cgi.a
+OBJS = main.o draw.o format.o data.o
 
 all: wiki.cgi
 
@@ -18,6 +19,5 @@ draw.o: draw.c
 main.o: main.c
 	$(CC) $(CFLAGS) -c $(INC) main.c
 
-OBJ = main.o draw.o format.o data.o
-wiki.cgi: $(OBJ) $(LIBCGI)
-	$(CC) $(CFLAGS) -o wiki.cgi $(OBJ) $(LIBCGI)
+wiki.cgi: $(OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o wiki.cgi $(OBJS) $(LIBS)

@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 
 #include "cgi/cgi.h"
+#include "util/util.h"
 
 #include "wiki/config.h"
 #include "wiki/data.h"
@@ -99,7 +100,17 @@ static void wiki_load_args(void)
 
 static int match_passwords(const char *password1, const char *password2)
 {
-	return strcmp(password1, password2) == 0;
+	MD5_CTX md5_ctx;
+	unsigned char hash[16];
+	char hash_string[2 * 16 + 1];
+
+	MD5_Init(&md5_ctx);
+	MD5_Update(&md5_ctx, (void *)password2, strlen(password2));
+	MD5_Final(hash, &md5_ctx);
+
+	binary_to_hex_string(hash, 16, hash_string);
+
+	return strcmp(password1, hash_string) == 0;
 }
 
 int main(int argc, char **argv)

@@ -2,10 +2,10 @@ CC = gcc
 CFLAGS = -Wall -O2
 INC = -I..
 
-all: libcgi.a
+all: cgi.a
 
 clean:
-	rm -f libcgi.a
+	rm -f cgi.a
 	rm -f *.o
 
 input.o: input.c
@@ -13,5 +13,5 @@ input.o: input.c
 output.o: output.c
 	$(CC) $(CFLAGS) -c output.c $(INC)
 
-libcgi.a: output.o input.o
-	ar r libcgi.a output.o input.o
+cgi.a: output.o input.o
+	ar r cgi.a output.o input.o

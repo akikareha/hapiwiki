@@ -7,6 +7,7 @@
 #include <sys/time.h>
 
 #include "cgi/cgi.h"
+#include "util/util.h"
 
 #include "wiki/config.h"
 #include "wiki/data.h"
@@ -155,6 +156,9 @@ void wiki_data_text_write(const char *page, const char *text)
 void wiki_data_create_account(const char *account, const char *password)
 {
 	char path[WIKI_PATH_SIZE + 1];
+	MD5_CTX md5_ctx;
+	unsigned char hash[16];
+	char hash_string[2 * 16 + 1];
 	struct stat st;
 	FILE *fp;
 	int size;
@@ -166,6 +170,12 @@ void wiki_data_create_account(const char *account, const char *password)
 	if (password == NULL) {
 		cgi_die("invalid password");
 	}
+
+	MD5_Init(&md5_ctx);
+	MD5_Update(&md5_ctx, (void *)password, strlen(password));
+	MD5_Final(hash, &md5_ctx);
+
+	binary_to_hex_string(hash, 16, hash_string);
 
 	if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") > WIKI_PATH_SIZE) {
 		cgi_die("path size exceeded");
@@ -217,8 +227,8 @@ void wiki_data_create_account(const char *account, const char *password)
 	if (fp == NULL) {
 		cgi_die("fopen");
 	}
-	size = strlen(password);
-	if (fwrite(password, 1, size, fp) != size) {
+	size = strlen(hash_string);
+	if (fwrite(hash_string, 1, size, fp) != size) {
 		cgi_die("fwrite");
 	}
 	if (fclose(fp) == EOF) {
@@ -230,7 +240,7 @@ const char *wiki_data_read_password(const char *account)
 {
 	char path[WIKI_PATH_SIZE + 1];
 	struct stat st;
-	char *password;
+	char *hash;
 	FILE *fp;
 
 	if (!is_valid_page(account)) {
@@ -251,8 +261,8 @@ const char *wiki_data_read_password(const char *account)
 		}
 	}
 
-	password = malloc(st.st_size + 1);
-	if (password == NULL) {
+	hash = malloc(st.st_size + 1);
+	if (hash == NULL) {
 		cgi_die("malloc");
 	}
 
@@ -260,16 +270,16 @@ const char *wiki_data_read_password(const char *account)
 	if (fp == NULL) {
 		cgi_die("fopen");
 	}
-	if (fread(password, 1, st.st_size, fp) != st.st_size) {
+	if (fread(hash, 1, st.st_size, fp) != st.st_size) {
 		cgi_die("fread");
 	}
 	if (fclose(fp) == EOF) {
 		cgi_die("fclose");
 	}
 
-	password[st.st_size] = '\0';
+	hash[st.st_size] = '\0';
 
-	return password;
+	return hash;
 }
 
 const char *wiki_data_begin_session(const char *account)
@@ -279,6 +289,10 @@ const char *wiki_data_begin_session(const char *account)
 	struct timeval tv;
 	int i;
 	char *token;
+	MD5_CTX md5_ctx;
+	unsigned char hash[16];
+	char *hash_string;
+	char hash_string2[2 * 16 + 1];
 	char path[WIKI_PATH_SIZE + 1];
 	FILE *fp;
 	int size;
@@ -302,6 +316,24 @@ const char *wiki_data_begin_session(const char *account)
 	}
 	sprintf(token, "%s%s", WIKI_SECRET, secret);
 
+	MD5_Init(&md5_ctx);
+	MD5_Update(&md5_ctx, token, strlen(token));
+	MD5_Final(hash, &md5_ctx);
+
+	free(token);
+
+	hash_string = malloc(2 * 16 + 1);
+	if (hash_string == NULL) {
+		cgi_die("malloc");
+	}
+	binary_to_hex_string(hash, 16, hash_string);
+
+	MD5_Init(&md5_ctx);
+	MD5_Update(&md5_ctx, hash_string, strlen(hash_string));
+	MD5_Final(hash, &md5_ctx);
+
+	binary_to_hex_string(hash, 16, hash_string2);
+
 	if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") + 1 + strlen(account) + 1 + strlen("session") > WIKI_PATH_SIZE) {
 		cgi_die("path size exceeded");
 	}
@@ -312,15 +344,15 @@ const char *wiki_data_begin_session(const char *account)
 	if (fp == NULL) {
 		cgi_die("fopen");
 	}
-	size = strlen(token);
-	if (fwrite(token, 1, size, fp) != size) {
+	size = strlen(hash_string2);
+	if (fwrite(hash_string2, 1, size, fp) != size) {
 		cgi_die("fwrite");
 	}
 	if (fclose(fp) == EOF) {
 		cgi_die("fclose");
 	}
 
-	return token;
+	return hash_string;
 }
 
 void wiki_data_end_session(const char *account)

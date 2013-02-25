@@ -1,3 +1,25 @@
 HapiWiki - A simple wiki program written in C
 By Aki Goto <tyatsumi@gmail.com>
 Placed in the public domain
+
+To build and to install
+
+Edit wiki/config.h and run 'make'.
+Wiki executable will be created at wiki/wiki.cgi .
+Copy wiki.cgi to your CGI directory.
+Copy default.css, logo.png, icon.png to your HTML directory.
+Create WIKI_DATA_DIR directory and set permission as writable by webserver.
+
+To use
+
+Access wiki.cgi by web browser.
+Follow 'Login' link to create account and login.
+Follow 'Edit' link to edit.
+You must preview and login to save edit.
+
+Text formatting rules
+
+Camelcase words are converted to wiki links.
+Ordinal URLs are converted to hyper links.
+Double bracketted words (i.e. [[Some Words]]) are converted to wiki links.
+* is used to make list.

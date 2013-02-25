@@ -27,14 +27,15 @@ static void wiki_draw_http_header(const struct wiki_args *args)
 
 static void wiki_draw_head(const struct wiki_args *args)
 {
-	printf("<html>\n");
+	printf("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n");
+	printf("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n");
 	printf("<head>\n");
-	printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\n");
+	printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n");
 #ifdef WIKI_CSS
-	printf("<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">\n", WIKI_CSS);
+	printf("<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" />\n", WIKI_CSS);
 #endif
 #ifdef WIKI_ICON
-	printf("<link rel=\"shortcut icon\" href=\"%s\">\n", WIKI_ICON);
+	printf("<link rel=\"shortcut icon\" href=\"%s\" />\n", WIKI_ICON);
 #endif
 
 	printf("<title>");
@@ -77,7 +78,7 @@ static void wiki_draw_tail()
 static void wiki_draw_navigator(const struct wiki_args *args)
 {
 #ifdef WIKI_LOGO
-	printf("<a href=\"%s\"><img src=\"%s\" border=\"0\" alt=\"%s\"></a>\n", script_name, WIKI_LOGO, WIKI_NAME);
+	printf("<a href=\"%s\"><img src=\"%s\" border=\"0\" alt=\"%s\" /></a>\n", script_name, WIKI_LOGO, WIKI_NAME);
 #else
 	printf("<a href=\"%s\">%s</a>\n", script_name, WIKI_NAME);
 #endif
