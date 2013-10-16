@@ -16,6 +16,13 @@ enum {
 	WIKI_BLOCK_DL,
 };
 
+enum {
+	WIKI_MATH_NONE,
+	WIKI_MATH_PARENTHES,
+	WIKI_MATH_BRACKET,
+	WIKI_MATH_DOLLARS,
+};
+
 void unify_line_breaks(char *s)
 {
 	char *d;
@@ -235,6 +242,7 @@ void wiki_format(const char *comment, FILE *output_stream)
 	int lv;
 	int line_length;
 	int seek_dd;
+	int math;
 
 	const char *outend;
 	int wn;
@@ -249,83 +257,94 @@ void wiki_format(const char *comment, FILE *output_stream)
 	lv = 0;
 	line_length = 0;
 	seek_dd = 0;
+	math = WIKI_MATH_NONE;
 
 	attribute_init();
 	block = wiki_format_open(~WIKI_BLOCK_NONE, WIKI_BLOCK_NONE);
 	for (;;) {
 
-		/* decide the block type */
-		if (*comment == '\n' || *comment == '\0') {
-			lv = wiki_format_set_ul_level(lv, 0);
-			block = wiki_format_close(block, WIKI_BLOCK_NONE);
-			if (*comment == '\0') {
-				break; /* exit the loop */
-			} else {
+		if (math == WIKI_MATH_NONE) {
+			/* decide the block type */
+			if (*comment == '\n' || *comment == '\0') {
+				lv = wiki_format_set_ul_level(lv, 0);
+				block = wiki_format_close(block, WIKI_BLOCK_NONE);
+				if (*comment == '\0') {
+					break; /* exit the loop */
+				} else {
+					comment++;
+				}
+				continue;
+			} else if (strncmp("----", comment, 4) == 0) { /* <hr /> */
+				lv = wiki_format_set_ul_level(lv, 0);
+				block = wiki_format_close(block, WIKI_BLOCK_P);
+				printf("<hr />\n");
+				while (*comment == '-') {
+					comment++;
+				}
+				if (*comment == '\n') {
+					comment++;
+				}
+				continue;
+			} else if (*comment == ' ') { /* <pre> */
+				lv = wiki_format_set_ul_level(lv, 0);
+				block = wiki_format_close(block, WIKI_BLOCK_PRE);
+				block = wiki_format_open(block, WIKI_BLOCK_PRE);
+				/*fputc(*comment, stdout);*/
 				comment++;
-			}
-			continue;
-		} else if (strncmp("----", comment, 4) == 0) { /* <hr /> */
-			lv = wiki_format_set_ul_level(lv, 0);
-			block = wiki_format_close(block, WIKI_BLOCK_P);
-			printf("<hr />\n");
-			while (*comment == '-') {
-				comment++;
-			}
-			if (*comment == '\n') {
-				comment++;
-			}
-			continue;
-		} else if (*comment == ' ') { /* <pre> */
-			lv = wiki_format_set_ul_level(lv, 0);
-			block = wiki_format_close(block, WIKI_BLOCK_PRE);
-			block = wiki_format_open(block, WIKI_BLOCK_PRE);
-			/*fputc(*comment, stdout);*/
-			comment++;
-		} else if (*comment == '*') { /* <ul> */
-			const char *end;
-			int i;
+			} else if (*comment == '*') { /* <ul> */
+				const char *end;
+				int i;
 
-			block = wiki_format_close(block, WIKI_BLOCK_UL);
-			for (end=comment; *end=='*'; end++);
-			lv = wiki_format_set_ul_level(lv, end - comment);
-			block = wiki_format_open(block, WIKI_BLOCK_UL);
-			for (i=0; i<lv-1; i++) {
-				fputc(' ', stdout);
+				block = wiki_format_close(block, WIKI_BLOCK_UL);
+				for (end=comment; *end=='*'; end++);
+				lv = wiki_format_set_ul_level(lv, end - comment);
+				block = wiki_format_open(block, WIKI_BLOCK_UL);
+				for (i=0; i<lv-1; i++) {
+					fputc(' ', stdout);
+				}
+				printf("<li>");
+				comment = end;
+			} else if (*comment == ':') { /* <dl> */
+				lv = wiki_format_set_ul_level(lv, 0);
+				block = wiki_format_close(block, WIKI_BLOCK_DL);
+				block = wiki_format_open(block, WIKI_BLOCK_DL);
+				printf("<dt>");
+				seek_dd = 1;
+				comment++;
+			} else { /* an implicit <p> begins */
+				lv = wiki_format_set_ul_level(lv, 0);
+				block = wiki_format_close(block, WIKI_BLOCK_P);
+				block = wiki_format_open(block, WIKI_BLOCK_P);
 			}
-			printf("<li>");
-			comment = end;
-		} else if (*comment == ':') { /* <dl> */
-			lv = wiki_format_set_ul_level(lv, 0);
-			block = wiki_format_close(block, WIKI_BLOCK_DL);
-			block = wiki_format_open(block, WIKI_BLOCK_DL);
-			printf("<dt>");
-			seek_dd = 1;
-			comment++;
-		} else { /* an implicit <p> begins */
-			lv = wiki_format_set_ul_level(lv, 0);
-			block = wiki_format_close(block, WIKI_BLOCK_P);
-			block = wiki_format_open(block, WIKI_BLOCK_P);
+		} else {
+			if (*comment == '\0') {
+				lv = wiki_format_set_ul_level(lv, 0);
+				block = wiki_format_close(block, WIKI_BLOCK_NONE);
+				break;
+			}
 		}
 
 		/* draw the line */
 		outend = comment;
 		wn = WN_INIT;
-		while (1) {
+		for (;;) {
 			if (*comment == '\n' || *comment == '\0') { /* terminate the line */
-				if (block != WIKI_BLOCK_PRE && (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER)) {
+				if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER)) {
 					wiki_format_draw_wikiname(outend, comment);
 				} else {
 					for (; outend < comment; outend++) {
 						cgi_putc_html_escaped(*outend);
 					}
 				}
-				while (attribute_depth > 0) {
-					attribute_pop();
-				}
-				if (block == WIKI_BLOCK_UL) {
-					printf("</li>");
-				} else if (block == WIKI_BLOCK_DL) {
-					printf("</dd>");
+				if (math == WIKI_MATH_NONE) {
+					while (attribute_depth > 0) {
+						attribute_pop();
+					}
+					if (block == WIKI_BLOCK_UL) {
+						printf("</li>");
+					} else if (block == WIKI_BLOCK_DL) {
+						printf("</dd>");
+					}
 				}
 				fputc('\n', stdout);
 				if (*comment == '\0') {
@@ -333,9 +352,13 @@ void wiki_format(const char *comment, FILE *output_stream)
 					comment++;
 				}
 				break;
-			} else if (block == WIKI_BLOCK_DL && seek_dd && *comment == ':') { /* <dd> found */
-				for (; outend < comment; outend++) {
-					cgi_putc_html_escaped(*outend);
+			} else if (math == WIKI_MATH_NONE && block == WIKI_BLOCK_DL && seek_dd && *comment == ':') { /* <dd> found */
+				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
+					wiki_format_draw_wikiname(outend, comment);
+				} else {
+					for (; outend < comment; outend++) {
+						cgi_putc_html_escaped(*outend);
+					}
 				}
 				wn = WN_INIT;
 
@@ -347,7 +370,7 @@ void wiki_format(const char *comment, FILE *output_stream)
 
 			/* http: phrase */
 			/* XXX WikiName may be overridden */
-			else if (block != WIKI_BLOCK_PRE && *comment == 'h' && strncmp("http:", comment, 5) == 0) {
+			else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && *comment == 'h' && strncmp("http:", comment, 5) == 0) {
 				const char *end;
 				const char *s;
 
@@ -379,7 +402,7 @@ void wiki_format(const char *comment, FILE *output_stream)
 
 			/* user@domain phrase */
 			/* XXX WikiName may be overridden */
-			else if (block != WIKI_BLOCK_PRE && *comment == '@') { /* XXX user@ (domain omitted) */
+			else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && *comment == '@') { /* XXX user@ (domain omitted) */
 				const char *end;
 				const char *s;
 
@@ -408,7 +431,7 @@ void wiki_format(const char *comment, FILE *output_stream)
 
 			/* XXX there may be some misunderstandings around multiple primes.. */
 			/* '''''' */
-			else if (block != WIKI_BLOCK_PRE && *comment == '\'' && strncmp("''''''", comment, 6) == 0) {
+			else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && *comment == '\'' && strncmp("''''''", comment, 6) == 0) {
 				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
 					wiki_format_draw_wikiname(outend, comment);
 				} else {
@@ -422,8 +445,35 @@ void wiki_format(const char *comment, FILE *output_stream)
 				outend = comment;
 			}
 			/* TODO ''''' <strong><em> */
+			else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && *comment == '\'' && strncmp("'''''", comment, 5) == 0) {
+				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
+					wiki_format_draw_wikiname(outend, comment);
+				} else {
+					for (; outend < comment; outend++) {
+						cgi_putc_html_escaped(*outend);
+					}
+				}
+				wn = WN_INIT;
+				if (!attribute_exist(WIKI_ATTRIBUTE_EM) && !attribute_exist(WIKI_ATTRIBUTE_STRONG)) {
+					attribute_push(WIKI_ATTRIBUTE_EM);
+					attribute_push(WIKI_ATTRIBUTE_STRONG);
+				} else if (!attribute_exist(WIKI_ATTRIBUTE_EM)) {
+					while (attribute_pop() != WIKI_ATTRIBUTE_STRONG);
+					attribute_push(WIKI_ATTRIBUTE_EM);
+				} else if (!attribute_exist(WIKI_ATTRIBUTE_STRONG)) {
+					while (attribute_pop() != WIKI_ATTRIBUTE_EM);
+					attribute_push(WIKI_ATTRIBUTE_STRONG);
+				} else {
+					/* XXX ambiguity exists */
+					while (attribute_pop() != WIKI_ATTRIBUTE_STRONG);
+					while (attribute_pop() != WIKI_ATTRIBUTE_EM);
+				}
+
+				comment += 5;
+				outend = comment;
+			}
 			/* ''' <strong> */
-			else if (block != WIKI_BLOCK_PRE && *comment == '\'' && strncmp("'''", comment, 3) == 0) {
+			else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && *comment == '\'' && strncmp("'''", comment, 3) == 0) {
 				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
 					wiki_format_draw_wikiname(outend, comment);
 				} else {
@@ -442,7 +492,7 @@ void wiki_format(const char *comment, FILE *output_stream)
 				outend = comment;
 			}
 			/* '' <em> */
-			else if (block != WIKI_BLOCK_PRE && *comment == '\'' && strncmp("''", comment, 2) == 0) {
+			else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && *comment == '\'' && strncmp("''", comment, 2) == 0) {
 				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
 					wiki_format_draw_wikiname(outend, comment);
 				} else {
@@ -462,7 +512,7 @@ void wiki_format(const char *comment, FILE *output_stream)
 			}
 
 			/* [[ ]] bracket PageName */
-			else if (block != WIKI_BLOCK_PRE && *comment == '[' && *(comment+1) == '[') {
+			else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && *comment == '[' && *(comment+1) == '[') {
 				const char *start, *end;
 				const char *s;
 
@@ -507,9 +557,111 @@ void wiki_format(const char *comment, FILE *output_stream)
 			/* TODO Wiki:WikiName InterWikiName */
 			/* TODO uploaded image */
 
+			/* math parenthes open */
+			else if (math == WIKI_MATH_NONE && *comment == '\\' && strncmp("\\(", comment, 2) == 0) {
+				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
+					wiki_format_draw_wikiname(outend, comment);
+				} else {
+					for (; outend < comment; outend++) {
+						cgi_putc_html_escaped(*outend);
+					}
+				}
+				wn = WN_INIT;
+
+				fputs("\\(", stdout);
+
+				comment += 2;
+				outend = comment;
+
+				math = WIKI_MATH_PARENTHES;
+			}
+
+			/* math parenthes close */
+			else if (math == WIKI_MATH_PARENTHES && *comment == '\\' && strncmp("\\)", comment, 2) == 0) {
+				for (; outend < comment; outend++) {
+					cgi_putc_html_escaped(*outend);
+				}
+
+				fputs("\\)", stdout);
+
+				comment += 2;
+				outend = comment;
+
+				math = WIKI_MATH_NONE;
+				wn = WN_INIT;
+			}
+
+			/* math bracket open */
+			else if (math == WIKI_MATH_NONE && *comment == '\\' && strncmp("\\[", comment, 2) == 0) {
+				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
+					wiki_format_draw_wikiname(outend, comment);
+				} else {
+					for (; outend < comment; outend++) {
+						cgi_putc_html_escaped(*outend);
+					}
+				}
+				wn = WN_INIT;
+
+				fputs("\\[", stdout);
+
+				comment += 2;
+				outend = comment;
+
+				math = WIKI_MATH_BRACKET;
+			}
+
+			/* math bracket close */
+			else if (math == WIKI_MATH_BRACKET && *comment == '\\' && strncmp("\\]", comment, 2) == 0) {
+				for (; outend < comment; outend++) {
+					cgi_putc_html_escaped(*outend);
+				}
+
+				fputs("\\]", stdout);
+
+				comment += 2;
+				outend = comment;
+
+				math = WIKI_MATH_NONE;
+				wn = WN_INIT;
+			}
+
+			/* math dollers open */
+			else if (math == WIKI_MATH_NONE && *comment == '$' && strncmp("$$", comment, 2) == 0) {
+				if (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER) {
+					wiki_format_draw_wikiname(outend, comment);
+				} else {
+					for (; outend < comment; outend++) {
+						cgi_putc_html_escaped(*outend);
+					}
+				}
+				wn = WN_INIT;
+
+				fputs("$$", stdout);
+
+				comment += 2;
+				outend = comment;
+
+				math = WIKI_MATH_DOLLARS;
+			}
+
+			/* math dollers close */
+			else if (math == WIKI_MATH_DOLLARS && *comment == '$' && strncmp("$$", comment, 2) == 0) {
+				for (; outend < comment; outend++) {
+					cgi_putc_html_escaped(*outend);
+				}
+
+				fputs("$$", stdout);
+
+				comment += 2;
+				outend = comment;
+
+				math = WIKI_MATH_NONE;
+				wn = WN_INIT;
+			}
+
       /* print a word */
-			else if (*comment == ' ' || *comment == '\t') {
-				if (block != WIKI_BLOCK_PRE && (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER)) {
+			else if (*comment < 'A' || (*comment > 'Z' && *comment < 'a') || *comment > 'z') {
+				if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE && (wn == WN_SECOND_UPPER || wn == WN_SECOND_LOWER)) {
 					wiki_format_draw_wikiname(outend, comment);
 				} else {
 					for (; outend < comment; outend++) {
