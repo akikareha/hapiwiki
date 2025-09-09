@@ -360,10 +360,10 @@ void wiki_format(const char *comment, FILE *output_stream) {
         outend = comment; /* skip the colon ':' */
       }
 
-      /* http: phrase */
+      /* https: phrase */
       /* XXX WikiName may be overridden */
       else if (math == WIKI_MATH_NONE && block != WIKI_BLOCK_PRE &&
-               *comment == 'h' && strncmp("http:", comment, 5) == 0) {
+               *comment == 'h' && strncmp("https:", comment, 6) == 0) {
         const char *end;
         const char *s;
 
@@ -559,7 +559,7 @@ void wiki_format(const char *comment, FILE *output_stream) {
         outend = comment;
       }
 
-      /* TODO embedded image <img> ... http:img.png etc. */
+      /* TODO embedded image <img> ... https:img.png etc. */
       /* TODO Wiki:WikiName InterWikiName */
       /* TODO uploaded image */
 

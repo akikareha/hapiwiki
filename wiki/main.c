@@ -108,6 +108,46 @@ static int match_passwords(const char *password1, const char *password2) {
   return strcmp(password1, hash_string) == 0;
 }
 
+#define FILTER_TMP_FILE "/tmp/post.txt"
+#define FILTER_BUFFER_SIZE 8192
+
+static char *run_filter(const char *filter, const char *text) {
+  FILE *tmp;
+  char *command_line;
+  FILE *fp;
+  char *buffer;
+  int length;
+
+  tmp = fopen(FILTER_TMP_FILE, "w");
+  if (tmp == NULL) {
+    cgi_die("failed to create temporal file");
+  }
+  fprintf(tmp, "%s", text);
+  fclose(tmp);
+
+  command_line = malloc(strlen(filter) + 1 + strlen(FILTER_TMP_FILE) + 1);
+  if (command_line == NULL) {
+    cgi_die("malloc");
+  }
+  sprintf(command_line, "%s %s", filter, FILTER_TMP_FILE);
+
+  fp = popen(command_line, "r");
+  if (fp == NULL) {
+    cgi_die("failed to filter");
+  }
+  buffer = malloc(FILTER_BUFFER_SIZE);
+  if (buffer == NULL) {
+    cgi_die("malloc");
+  }
+  length = fread(buffer, 1, FILTER_BUFFER_SIZE - 1, fp);
+  pclose(fp);
+  buffer[length] = '\0';
+
+  free(command_line);
+
+  return buffer;
+}
+
 int main(int argc, char **argv) {
   const char *data_dir;
   const char *session;
@@ -194,7 +234,19 @@ int main(int argc, char **argv) {
 
   if (args.command != WIKI_COMMAND_PREVIEW) {
     if (args.command == WIKI_COMMAND_SAVE) {
-      wiki_data_text_write(data_dir, args.page, args.text);
+      const char *filter;
+      char *filtered;
+
+      filter = getenv("WIKI_FILTER");
+      if (filter != NULL) {
+        filtered = run_filter(filter, args.text);
+      } else {
+        filtered = args.text;
+      }
+      wiki_data_text_write(data_dir, args.page, filtered);
+      if (filter != NULL) {
+        free(filtered);
+      }
     }
 
     text = wiki_data_text_read(data_dir, args.page);
