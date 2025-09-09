@@ -30,9 +30,7 @@ static void wiki_draw_head(const struct wiki_args *args) {
   printf("<html xmlns=\"http://www.w3.org/1999/xhtml\">\n");
   printf("<head>\n");
 #ifdef WIKI_MATH
-  printf("<script type=\"text/javascript\" "
-         "src=\"http://cdn.mathjax.org/mathjax/latest/"
-         "MathJax.js?config=TeX-AMS-MML_HTMLorMML\"></script>\n");
+  printf("<script type=\"text/javascript\" id=\"MathJax-script\" async src=\"https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js\"></script>\n");
 #endif
   printf("<meta http-equiv=\"Content-Type\" content=\"text/html; "
          "charset=UTF-8\" />\n");
