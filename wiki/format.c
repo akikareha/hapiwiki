@@ -104,7 +104,7 @@ static int wiki_format_close(int block, int except) {
   return WIKI_BLOCK_NONE;
 }
 
-static int wiki_format_set_ul_level(lv, new_lv) {
+static int wiki_format_set_ul_level(int lv, int new_lv) {
   if (new_lv == lv) {
     return lv;
   }
@@ -231,7 +231,6 @@ static void wiki_format_draw_wikiname(const char *start, const char *end) {
 void wiki_format(const char *comment, FILE *output_stream) {
   int block;
   int lv;
-  int line_length;
   int seek_dd;
   int math;
 
@@ -246,7 +245,6 @@ void wiki_format(const char *comment, FILE *output_stream) {
   }
 
   lv = 0;
-  line_length = 0;
   seek_dd = 0;
   math = WIKI_MATH_NONE;
 

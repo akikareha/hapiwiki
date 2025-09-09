@@ -96,7 +96,7 @@ void wiki_data_text_write(const char *data_dir, const char *page,
     cgi_die("invalid text");
   }
 
-  if (strlen(data_dir) + 1 + strlen("pages") > WIKI_PATH_SIZE) {
+  if (strlen(data_dir) + 1 + strlen("pages") + 1 > WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
   snprintf(path, WIKI_PATH_SIZE, "%s/pages", data_dir);
@@ -180,7 +180,7 @@ void wiki_data_create_account(const char *data_dir, const char *account,
 
   binary_to_hex_string(hash, 16, hash_string);
 
-  if (strlen(data_dir) + 1 + strlen("accounts") > WIKI_PATH_SIZE) {
+  if (strlen(data_dir) + 1 + strlen("accounts") + 1 > WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
   snprintf(path, WIKI_PATH_SIZE, "%s/accounts", data_dir);
@@ -291,9 +291,11 @@ const char *wiki_data_read_password(const char *data_dir, const char *account) {
 
 const char *wiki_data_begin_session(const char *data_dir, const char *account) {
   int length;
+  int secret_length;
   char *secret;
   struct timeval tv;
   int i;
+  int token_length;
   char *token;
   MD5_CTX md5_ctx;
   unsigned char hash[16];
@@ -308,15 +310,17 @@ const char *wiki_data_begin_session(const char *data_dir, const char *account) {
   }
 
   length = strlen(account);
-  secret = malloc(length + 1 + 16 + 1);
+  secret_length = length + 1 + 32;
+  secret = malloc(secret_length + 1);
   gettimeofday(&tv, NULL);
   srand(tv.tv_usec);
   sprintf(secret, "%s/", account);
   for (i = 0; i < 16; i++) {
-    sprintf(secret + length + 1 + i, "%02x", rand() & 0xff);
+    sprintf(secret + length + 1 + i * 2, "%02x", rand() & 0xff);
   }
 
-  token = malloc(strlen(WIKI_SECRET) + strlen(secret) + 1);
+  token_length = strlen(WIKI_SECRET) + secret_length;
+  token = malloc(token_length + 1);
   if (token == NULL) {
     cgi_die("malloc");
   }
