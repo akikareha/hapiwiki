@@ -34,7 +34,7 @@ static int is_valid_page(const char *page) {
   return 1;
 }
 
-const char *wiki_data_text_read(const char *page) {
+const char *wiki_data_text_read(const char *data_dir, const char *page) {
   char path[WIKI_PATH_SIZE + 1];
   struct stat st;
   char *text;
@@ -44,12 +44,12 @@ const char *wiki_data_text_read(const char *page) {
     cgi_die("invalid page name");
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("pages") + 1 + strlen(page) + 1 +
+  if (strlen(data_dir) + 1 + strlen("pages") + 1 + strlen(page) + 1 +
           strlen("current") >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/pages/%s/current", WIKI_DATA_DIR, page);
+  snprintf(path, WIKI_PATH_SIZE, "%s/pages/%s/current", data_dir, page);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (stat(path, &st) == -1) {
@@ -81,7 +81,8 @@ const char *wiki_data_text_read(const char *page) {
   return text;
 }
 
-void wiki_data_text_write(const char *page, const char *text) {
+void wiki_data_text_write(const char *data_dir, const char *page,
+                          const char *text) {
   char path[WIKI_PATH_SIZE + 1];
   struct stat st;
   FILE *fp;
@@ -95,10 +96,10 @@ void wiki_data_text_write(const char *page, const char *text) {
     cgi_die("invalid text");
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("pages") > WIKI_PATH_SIZE) {
+  if (strlen(data_dir) + 1 + strlen("pages") > WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/pages", WIKI_DATA_DIR);
+  snprintf(path, WIKI_PATH_SIZE, "%s/pages", data_dir);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (stat(path, &st) == -1) {
@@ -114,11 +115,11 @@ void wiki_data_text_write(const char *page, const char *text) {
     }
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("pages") + 1 + strlen(page) >
+  if (strlen(data_dir) + 1 + strlen("pages") + 1 + strlen(page) >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/pages/%s", WIKI_DATA_DIR, page);
+  snprintf(path, WIKI_PATH_SIZE, "%s/pages/%s", data_dir, page);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (stat(path, &st) == -1) {
@@ -134,12 +135,12 @@ void wiki_data_text_write(const char *page, const char *text) {
     }
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("pages") + 1 + strlen(page) + 1 +
+  if (strlen(data_dir) + 1 + strlen("pages") + 1 + strlen(page) + 1 +
           strlen("current") >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/pages/%s/current", WIKI_DATA_DIR, page);
+  snprintf(path, WIKI_PATH_SIZE, "%s/pages/%s/current", data_dir, page);
   path[WIKI_PATH_SIZE] = '\0';
 
   fp = fopen(path, "w");
@@ -155,7 +156,8 @@ void wiki_data_text_write(const char *page, const char *text) {
   }
 }
 
-void wiki_data_create_account(const char *account, const char *password) {
+void wiki_data_create_account(const char *data_dir, const char *account,
+                              const char *password) {
   char path[WIKI_PATH_SIZE + 1];
   MD5_CTX md5_ctx;
   unsigned char hash[16];
@@ -178,10 +180,10 @@ void wiki_data_create_account(const char *account, const char *password) {
 
   binary_to_hex_string(hash, 16, hash_string);
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") > WIKI_PATH_SIZE) {
+  if (strlen(data_dir) + 1 + strlen("accounts") > WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/accounts", WIKI_DATA_DIR);
+  snprintf(path, WIKI_PATH_SIZE, "%s/accounts", data_dir);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (stat(path, &st) == -1) {
@@ -197,11 +199,11 @@ void wiki_data_create_account(const char *account, const char *password) {
     }
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") + 1 + strlen(account) >
+  if (strlen(data_dir) + 1 + strlen("accounts") + 1 + strlen(account) >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s", WIKI_DATA_DIR, account);
+  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s", data_dir, account);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (stat(path, &st) == -1) {
@@ -219,13 +221,12 @@ void wiki_data_create_account(const char *account, const char *password) {
     cgi_die("the account already exists");
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
+  if (strlen(data_dir) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
           strlen("password") >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/password", WIKI_DATA_DIR,
-           account);
+  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/password", data_dir, account);
   path[WIKI_PATH_SIZE] = '\0';
 
   fp = fopen(path, "w");
@@ -241,7 +242,7 @@ void wiki_data_create_account(const char *account, const char *password) {
   }
 }
 
-const char *wiki_data_read_password(const char *account) {
+const char *wiki_data_read_password(const char *data_dir, const char *account) {
   char path[WIKI_PATH_SIZE + 1];
   struct stat st;
   char *hash;
@@ -251,13 +252,12 @@ const char *wiki_data_read_password(const char *account) {
     cgi_die("invalid account name");
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
+  if (strlen(data_dir) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
           strlen("password") >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/password", WIKI_DATA_DIR,
-           account);
+  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/password", data_dir, account);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (stat(path, &st) == -1) {
@@ -289,7 +289,7 @@ const char *wiki_data_read_password(const char *account) {
   return hash;
 }
 
-const char *wiki_data_begin_session(const char *account) {
+const char *wiki_data_begin_session(const char *data_dir, const char *account) {
   int length;
   char *secret;
   struct timeval tv;
@@ -340,13 +340,12 @@ const char *wiki_data_begin_session(const char *account) {
 
   binary_to_hex_string(hash, 16, hash_string2);
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
+  if (strlen(data_dir) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
           strlen("session") >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/session", WIKI_DATA_DIR,
-           account);
+  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/session", data_dir, account);
   path[WIKI_PATH_SIZE] = '\0';
 
   fp = fopen(path, "w");
@@ -364,20 +363,19 @@ const char *wiki_data_begin_session(const char *account) {
   return hash_string;
 }
 
-void wiki_data_end_session(const char *account) {
+void wiki_data_end_session(const char *data_dir, const char *account) {
   char path[WIKI_PATH_SIZE + 1];
 
   if (!is_valid_page(account)) {
     cgi_die("invalid account name");
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
+  if (strlen(data_dir) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
           strlen("session") >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/session", WIKI_DATA_DIR,
-           account);
+  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/session", data_dir, account);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (unlink(path) == -1) {
@@ -385,7 +383,7 @@ void wiki_data_end_session(const char *account) {
   }
 }
 
-const char *wiki_data_read_session(const char *account) {
+const char *wiki_data_read_session(const char *data_dir, const char *account) {
   char path[WIKI_PATH_SIZE + 1];
   struct stat st;
   char *session;
@@ -395,13 +393,12 @@ const char *wiki_data_read_session(const char *account) {
     cgi_die("invalid account name");
   }
 
-  if (strlen(WIKI_DATA_DIR) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
+  if (strlen(data_dir) + 1 + strlen("accounts") + 1 + strlen(account) + 1 +
           strlen("session") >
       WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
   }
-  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/session", WIKI_DATA_DIR,
-           account);
+  snprintf(path, WIKI_PATH_SIZE, "%s/accounts/%s/session", data_dir, account);
   path[WIKI_PATH_SIZE] = '\0';
 
   if (stat(path, &st) == -1) {

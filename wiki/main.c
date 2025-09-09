@@ -108,6 +108,7 @@ static int match_passwords(const char *password1, const char *password2) {
 }
 
 int main(int argc, char **argv) {
+  const char *data_dir;
   const char *session;
   const char *text;
 
@@ -118,6 +119,11 @@ int main(int argc, char **argv) {
   wiki_init();
   wiki_load_args();
 
+  data_dir = getenv("WIKI_DATA_DIR");
+  if (data_dir == NULL) {
+    data_dir = WIKI_DATA_DIR;
+  }
+
   /* operate */
 
   if (args.command == WIKI_COMMAND_CREATE_ACCOUNT) {
@@ -127,7 +133,7 @@ int main(int argc, char **argv) {
     if (strcmp(args.password, args.confirm) != 0) {
       cgi_die("passwords not match");
     }
-    wiki_data_create_account(args.account, args.password);
+    wiki_data_create_account(data_dir, args.account, args.password);
     args.command = WIKI_COMMAND_LOGIN;
   }
 
@@ -135,7 +141,7 @@ int main(int argc, char **argv) {
   if (args.command == WIKI_COMMAND_SAVE && args.session == NULL) {
     const char *password;
 
-    password = wiki_data_read_password(args.account);
+    password = wiki_data_read_password(data_dir, args.account);
     if (password == NULL || args.password == NULL) {
       cgi_die("password is null");
     }
@@ -147,7 +153,7 @@ int main(int argc, char **argv) {
   } else if (args.command == WIKI_COMMAND_LOGIN) {
     const char *password;
 
-    password = wiki_data_read_password(args.account);
+    password = wiki_data_read_password(data_dir, args.account);
     if (password == NULL || args.password == NULL) {
       cgi_die("password is null");
     }
@@ -155,12 +161,12 @@ int main(int argc, char **argv) {
       cgi_die("passwords not match");
     }
 
-    args.session = wiki_data_begin_session(args.account);
+    args.session = wiki_data_begin_session(data_dir, args.account);
   }
 
   args.loggedin = 0;
   if (args.account != NULL) {
-    session = wiki_data_read_session(args.account);
+    session = wiki_data_read_session(data_dir, args.account);
     if (session != NULL && args.session != NULL) {
       if (match_passwords(session, args.session)) {
         args.loggedin = 1;
@@ -170,7 +176,7 @@ int main(int argc, char **argv) {
 
   if (args.command == WIKI_COMMAND_LOGOUT) {
     if (args.loggedin) {
-      wiki_data_end_session(args.account);
+      wiki_data_end_session(data_dir, args.account);
       args.loggedin = 0;
     } else {
       cgi_die("not logged in");
@@ -185,10 +191,10 @@ int main(int argc, char **argv) {
 
   if (args.command != WIKI_COMMAND_PREVIEW) {
     if (args.command == WIKI_COMMAND_SAVE) {
-      wiki_data_text_write(args.page, args.text);
+      wiki_data_text_write(data_dir, args.page, args.text);
     }
 
-    text = wiki_data_text_read(args.page);
+    text = wiki_data_text_read(data_dir, args.page);
   } else {
     text = NULL;
   }
