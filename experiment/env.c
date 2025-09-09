@@ -2,16 +2,15 @@
 
 extern char **environ;
 
-int main(void)
-{
-	char **s;
+int main(void) {
+  char **s;
 
-	printf("Content-Type: text/plain\n");
-	printf("\n");
+  printf("Content-Type: text/plain\n");
+  printf("\n");
 
-	for (s=environ; *s!=NULL; s++) {
-		printf("%s\n", *s);
-	}
+  for (s = environ; *s != NULL; s++) {
+    printf("%s\n", *s);
+  }
 
-	return 0;
+  return 0;
 }

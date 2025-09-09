@@ -1,11 +1,10 @@
 #include <stdio.h>
 
-int main(void)
-{
-	printf("Content-Type: text/plain\n");
-	printf("\n");
+int main(void) {
+  printf("Content-Type: text/plain\n");
+  printf("\n");
 
-	printf("hello\n");
+  printf("hello\n");
 
-	return 0;
+  return 0;
 }
