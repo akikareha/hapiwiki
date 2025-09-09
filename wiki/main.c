@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "argon2/argon2.h"
 #include "cgi/cgi.h"
 #include "util/util.h"
 
@@ -145,7 +146,8 @@ int main(int argc, char **argv) {
     if (password == NULL || args.password == NULL) {
       cgi_die("password is null");
     }
-    if (!match_passwords(password, args.password)) {
+    if (argon2id_verify(password, args.password, strlen(args.password)) !=
+        ARGON2_OK) {
       cgi_die("passwords not match");
     }
 
@@ -157,7 +159,8 @@ int main(int argc, char **argv) {
     if (password == NULL || args.password == NULL) {
       cgi_die("password is null");
     }
-    if (!match_passwords(password, args.password)) {
+    if (argon2id_verify(password, args.password, strlen(args.password)) !=
+        ARGON2_OK) {
       cgi_die("passwords not match");
     }
 

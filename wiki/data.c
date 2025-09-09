@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "argon2/argon2.h"
 #include "cgi/cgi.h"
 #include "util/util.h"
 
@@ -156,12 +157,31 @@ void wiki_data_text_write(const char *data_dir, const char *page,
   }
 }
 
+#define SALT_LEN 16
+
+static int get_random_salt(unsigned char *salt, size_t saltlen) {
+  FILE *urandom = fopen("/dev/urandom", "rb");
+  if (!urandom) {
+    return -1;
+  }
+  if (fread(salt, 1, saltlen, urandom) != saltlen) {
+    fclose(urandom);
+    return -1;
+  }
+  fclose(urandom);
+  return 0;
+}
+
 void wiki_data_create_account(const char *data_dir, const char *account,
                               const char *password) {
+  int result;
+  uint32_t t_cost = 2;       /* time cost */
+  uint32_t m_cost = 1 << 16; /* memory cost */
+  uint32_t parallelism = 1;  /* threads */
+  unsigned char salt[SALT_LEN];
+  char encoded[512];
+
   char path[WIKI_PATH_SIZE + 1];
-  MD5_CTX md5_ctx;
-  unsigned char hash[16];
-  char hash_string[2 * 16 + 1];
   struct stat st;
   FILE *fp;
   int size;
@@ -174,11 +194,17 @@ void wiki_data_create_account(const char *data_dir, const char *account,
     cgi_die("invalid password");
   }
 
-  MD5_Init(&md5_ctx);
-  MD5_Update(&md5_ctx, (void *)password, strlen(password));
-  MD5_Final(hash, &md5_ctx);
+  if (get_random_salt(salt, SALT_LEN) != 0) {
+    cgi_die("failed to generate salt");
+  }
 
-  binary_to_hex_string(hash, 16, hash_string);
+  result = argon2id_hash_encoded(t_cost, m_cost, parallelism, password,
+                                 strlen(password), salt, SALT_LEN, 32, encoded,
+                                 sizeof(encoded)); /* NULL: random salt */
+
+  if (result != ARGON2_OK) {
+    cgi_die("hash failed");
+  }
 
   if (strlen(data_dir) + 1 + strlen("accounts") + 1 > WIKI_PATH_SIZE) {
     cgi_die("path size exceeded");
@@ -233,8 +259,8 @@ void wiki_data_create_account(const char *data_dir, const char *account,
   if (fp == NULL) {
     cgi_die("fopen");
   }
-  size = strlen(hash_string);
-  if (fwrite(hash_string, 1, size, fp) != size) {
+  size = strlen(encoded);
+  if (fwrite(encoded, 1, size, fp) != size) {
     cgi_die("fwrite");
   }
   if (fclose(fp) == EOF) {

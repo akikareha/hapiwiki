@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -O2
 INC = -I..
-LIBS = ../util/util.a ../cgi/cgi.a
+LIBS = ../argon2/argon2.a ../util/util.a ../cgi/cgi.a
 OBJS = main.o draw.o format.o data.o
 
 all: wiki.cgi
