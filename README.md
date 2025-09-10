@@ -1,27 +1,44 @@
 # HapiWiki - A simple wiki program written in C
 
-By Aki Kareha <aki@kareha.org>  
+Author: Aki Kareha <aki@kareha.org>  
 Licence: CC0  
 
-## To build and to install
+## Build and Installation
 
-Edit `wiki/config.h` and run `make`.  
-Wiki executable will be created at `wiki/wiki.cgi`.  
-Copy `wiki.cgi` to your CGI directory.  
-Copy `style.css`, `logo.png`, `icon.png`, `tile.png` to your HTML directory.  
-Create `WIKI_DATA_DIR` directory and set permission as writable by webserver.  
-You can override the directory by using `WIKI_DATA_DIR` environment variable.  
+1. Edit `wiki/config.h` and adjust settings if needed.
+2. Run `make` -> this will generate `wiki/wiki.cgi`.
+3. Deploy:
+    * Copy `wiki.cgi` to your CGI directory
+    * Copy `style.css`, `logo.png`, `icon.png`, and `tile.png` to your HTML directory
+4. Prepare data directory:
+    * Create the path specified in `WIKI_ROOT` (e.g., `/home/hapi/wiki`)
+    * Inside it, create a `data` directory writable by the web server user
+5. `WIKI_ROOT` can be set in `wiki/config.h` or overridden by the environment variable `WIKI_ROOT`.
 
-## To use
+## Filtering (optional)
 
-Access `wiki.cgi` by web browser.  
-Follow `Login` link to create account and login.  
-Follow `Edit` link to edit.  
-You must preview and login to save edit.  
+- To enable filtering:
+    1. Place `wiki/filter.pl` in `WIKI_ROOT`
+    2. Create `WIKI_ROOT/openai.key` and put your OpenAI API key inside
+- To disable filtering:
+    * Comment out `WIKI_FILTER` in `wiki/config.h`.
 
-## Text formatting rules
+## Usage
 
-Camelcase words are converted to wiki links.  
-Ordinal URLs are converted to hyper links.  
-Double bracketted words (i.e. `[[Some Words]]`) are converted to wiki links.  
-`*` is used to make list.  
+- Access `wiki.cgi` with your web browser
+- Use **Login** -> create an account and sign in
+- Use **Edit** -> edit pages
+- To save changes, you must **log in** and **preview** first
+
+## Text Formatting Rules
+
+- Links
+    * CamelCase -> converted to wiki links
+    * URLs -> converted to hyperlinks
+    * [[Some Words]] -> converted to wiki links
+- Lists
+    * `*` -> unordered list
+    * `:` -> definition list
+- Others
+    * `----` -> horizontal line
+    * MathJax enabled -> write formulas using TeX notation

@@ -108,6 +108,7 @@ static int match_passwords(const char *password1, const char *password2) {
   return strcmp(password1, hash_string) == 0;
 }
 
+#ifdef WIKI_FILTER
 #define FILTER_TMP_FILE "/tmp/post.txt"
 #define FILTER_BUFFER_SIZE 8192
 
@@ -147,9 +148,11 @@ static char *run_filter(const char *filter, const char *text) {
 
   return buffer;
 }
+#endif
 
 int main(int argc, char **argv) {
-  const char *data_dir;
+  const char *root;
+  char *data_dir;
   const char *session;
   const char *text;
 
@@ -160,10 +163,15 @@ int main(int argc, char **argv) {
   wiki_init();
   wiki_load_args();
 
-  data_dir = getenv("WIKI_DATA_DIR");
-  if (data_dir == NULL) {
-    data_dir = WIKI_DATA_DIR;
+  root = getenv("WIKI_ROOT");
+  if (root == NULL) {
+    root = WIKI_ROOT;
   }
+  data_dir = malloc(strlen(root) + strlen("/data") + 1);
+  if (data_dir == NULL) {
+    cgi_die("malloc");
+  }
+  sprintf(data_dir, "%s%s", root, "/data");
 
   /* operate */
 
@@ -234,25 +242,32 @@ int main(int argc, char **argv) {
 
   if (args.command != WIKI_COMMAND_PREVIEW) {
     if (args.command == WIKI_COMMAND_SAVE) {
-      const char *filter;
+#ifdef WIKI_FILTER
+      char *filter;
       char *filtered;
 
-      filter = getenv("WIKI_FILTER");
-      if (filter != NULL) {
-        filtered = run_filter(filter, args.text);
-      } else {
-        filtered = args.text;
+      filter = malloc(strlen(WIKI_ROOT) + strlen("/filter.pl") + 1);
+      if (filter == NULL) {
+        cgi_die("malloc");
       }
+      sprintf(filter, "%s%s", WIKI_ROOT, "/filter.pl");
+
+      filtered = run_filter(filter, args.text);
       wiki_data_text_write(data_dir, args.page, filtered);
-      if (filter != NULL) {
-        free(filtered);
-      }
+      free(filtered);
+
+      free(filter);
+#else
+      wiki_data_text_write(data_dir, args.page, args.text);
+#endif
     }
 
     text = wiki_data_text_read(data_dir, args.page);
   } else {
     text = NULL;
   }
+
+  free(data_dir);
 
   /* output */
 

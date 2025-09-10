@@ -3,12 +3,14 @@ use strict;
 use warnings;
 use utf8;
 use open ":std", ":encoding(UTF-8)";
+use File::Basename;
 use LWP::UserAgent;
 use JSON;
 
 # OpenAI API key
+my $dir = dirname(__FILE__);
 my $api_key = do {
-    open my $fh, "<", "$ENV{WIKI_API_KEY}" or die "Cannot read API key";
+    open my $fh, "<", "$dir/openai.key" or die "Cannot read API key";
     chomp( my $k = <$fh> );
     $k;
 };
