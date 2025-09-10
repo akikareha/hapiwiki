@@ -335,6 +335,10 @@ void wiki_format(const char *comment, FILE *output_stream) {
             printf("</li>");
           } else if (block == WIKI_BLOCK_DL) {
             printf("</dd>");
+          } else {
+            if (block != WIKI_BLOCK_PRE) {
+              printf("<br />");
+            }
           }
         }
         fputc('\n', stdout);
@@ -683,7 +687,7 @@ void wiki_format(const char *comment, FILE *output_stream) {
           }
         }
         wn = WN_INIT;
-        fputc(*comment, stdout);
+        cgi_putc_html_escaped(*comment);
         comment++;
         outend = comment;
       }
